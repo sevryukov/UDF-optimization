@@ -4,27 +4,27 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
 CREATE FUNCTION [dbo].[F_EMPLOYEE_FULLNAME] (
        @ID_EMPLOYEE INT
 )
 RETURNS VARCHAR(101)
 AS
 BEGIN
-  DECLARE @RESULT VARCHAR(101)
-  SET @ID_EMPLOYEE = COALESCE(@ID_EMPLOYEE, dbo.F_EMPLOYEE_GET())
-  IF @ID_EMPLOYEE = -1
-     SET @RESULT = ''
-  ELSE
-    SELECT @RESULT = SURNAME + ' ' + UPPER(SUBSTRING(NAME, 1, 1)) + '. ' +
-    UPPER(SUBSTRING(PATRONYMIC, 1, 1)) + '.' FROM Employee
-    WHERE ID_EMPLOYEE = @ID_EMPLOYEE
-  SET @RESULT = RTRIM (REPLACE(@RESULT, '. .', ''))
-  
-  IF @RESULT = ''
-	SELECT @RESULT = LOGIN_NAME FROM Employee Where Id_Employee = @ID_Employee
-  RETURN @RESULT
-END
+    DECLARE @RESULT VARCHAR(101);
+
+    IF @ID_EMPLOYEE IS NULL OR @ID_EMPLOYEE = -1
+        RETURN '';
+
+    SELECT @RESULT = RTRIM(REPLACE(SURNAME + ' ' + UPPER(SUBSTRING(NAME, 1, 1)) + '. ' +
+                                   UPPER(SUBSTRING(PATRONYMIC, 1, 1)) + '.', '. .', '')) 
+    FROM Employee
+    WHERE ID_EMPLOYEE = @ID_EMPLOYEE;
+
+    IF @RESULT IS NULL OR @RESULT = ''
+        SELECT @RESULT = LOGIN_NAME FROM Employee WHERE Id_Employee = @ID_Employee;
+
+    RETURN @RESULT;
+END;
 GO
 /****** Object:  UserDefinedFunction [dbo].[F_EMPLOYEE_GET]    Script Date: 28.04.2024 19:21:25 ******/
 SET ANSI_NULLS ON
@@ -67,19 +67,19 @@ CREATE FUNCTION [dbo].[F_WORKITEMS_COUNT_BY_ID_WORK] (
 RETURNS int
 AS
 BEGIN
--- количество готовых / не готовых анализов для заказа
-     declare @result int
-     select @result = count(*) from workitem
-     where id_work = @id_work
-     -- не является групповым
-     and id_analiz 
-	 not in 
-		 (select id_analiz 
-		 from analiz where is_group = 1)
-     
-	 and is_complit = @is_complit
 
-     Return @result
+-- количество готовых / не готовых анализов для заказа
+    DECLARE @result int;
+
+    -- 使用左连接来替代 NOT IN 操作
+    SELECT @result = COUNT(*)
+    FROM workitem wi
+    LEFT JOIN analiz a ON wi.id_analiz = a.id_analiz AND a.is_group = 1
+    WHERE wi.id_work = @id_work
+        AND wi.is_complit = @is_complit
+        AND a.id_analiz IS NULL;  -- 过滤掉 is_group = 1 的记录
+
+    RETURN @result;
 END
 GO
 /****** Object:  UserDefinedFunction [dbo].[F_WORKS_LIST]    Script Date: 28.04.2024 19:21:25 ******/
@@ -483,6 +483,8 @@ ALTER TABLE [dbo].[Works] CHECK CONSTRAINT [FK__Works__Id_Employ__236943A5]
 GO
 ALTER TABLE [dbo].[Works]  WITH NOCHECK ADD  CONSTRAINT [FK__Works__ID_ORGANI__22751F6C] FOREIGN KEY([ID_ORGANIZATION])
 REFERENCES [dbo].[Organization] ([ID_ORGANIZATION])
+GO
+ALTER TABLE [dbo].[Works] CHECK CONSTRAINT [FK__Works__ID_ORGANI__22751F6C]
 GO
 ALTER TABLE [dbo].[Works] CHECK CONSTRAINT [FK__Works__ID_ORGANI__22751F6C]
 GO
