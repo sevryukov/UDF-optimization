@@ -1,4 +1,8 @@
-/****** Object:  UserDefinedFunction [dbo].[F_EMPLOYEE_FULLNAME]    Script Date: 28.04.2024 19:21:25 ******/
+/****** Были оптимизированы две функции, 'F_EMPLOYEE_FULLNAME' и 'F_WORKITEMS_COUNT_BY_ID_WORK'.
+/****** В функции 'F_EMPLOYEE_FULLNAME' уменьшено количество обращений к базе данных и сделана попытка выполнить всю обработку в одном запросе, что уменьшает логическую сложность.
+/****** В функции 'F_WORKITEMS_COUNT_BY_ID_WORK' 'not in' заменен на левое объединение для повышения производительности.
+
+
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
