@@ -1,5 +1,5 @@
 --1
--- Employee data
+-- Employee data(GPT)
 INSERT INTO dbo.Employee (Login_Name, Name, Patronymic, Surname, Email, Post, CreateDate, UpdateDate, EraseDate, Archived, IS_Role, Role)
 SELECT 
     'login' + CAST(number AS VARCHAR), 
@@ -45,7 +45,7 @@ WHERE type = 'P' AND number BETWEEN 1 AND 10;
 ----------------------------------------------------------------------------------------------------------------------
 
 --2
--- 使用循环插入 50,000 条测试数据到 Works 表，并为每个订单创建 3 个 WorkItem
+-- CREAT 50000 data(for help gpt)
 DECLARE @count int = 1;
 DECLARE @minEmployeeID int, @maxEmployeeID int, @minOrganizationID int, @maxOrganizationID int, @minAnalizID int, @maxAnalizID int;
 
