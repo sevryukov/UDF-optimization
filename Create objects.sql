@@ -110,6 +110,16 @@ AS
 -- СПИСОК РАБОТ
 begin
 insert into @result
+WITH WorkCompleteCTE(work_cte_id, complit, not_complit) as 
+(
+	SELECT
+		workitem_cte.id_work as work_cte_id,
+		SUM(case workitem_cte.is_complit when 1 then 1 else 0 end) as complit,
+		SUM(case workitem_cte.is_complit when 0 then 1 else 0 end) as not_complit
+    FROM workitem AS workitem_cte
+    WHERE id_analiz not in (select id_analiz from analiz where is_group = 1)
+    GROUP BY workitem_cte.id_work
+)
 SELECT
   Works.Id_Work,
   Works.CREATE_Date,
@@ -117,8 +127,10 @@ SELECT
   Works.IS_Complit,
   Works.FIO,
   convert(varchar(10), works.CREATE_Date, 104 ) as D_DATE,
-  dbo.F_WORKITEMS_COUNT_BY_ID_WORK(works.Id_Work,0) as WorkItemsNotComplit,
-  dbo.F_WORKITEMS_COUNT_BY_ID_WORK(works.Id_Work,1) as WorkItemsComplit,
+--  dbo.F_WORKITEMS_COUNT_BY_ID_WORK(works.Id_Work,0) as WorkItemsNotComplit,
+--  dbo.F_WORKITEMS_COUNT_BY_ID_WORK(works.Id_Work,1) as WorkItemsComplit,
+  work_complete_cte.not_complit as WorkItemsNotComplit,
+  work_complete_cte.complit as WorkItemsComplit,
   dbo.F_EMPLOYEE_FULLNAME(Works.Id_Employee) as EmployeeFullName,
   Works.StatusId,
   WorkStatus.StatusName,
@@ -134,9 +146,10 @@ SELECT
 FROM
  Works
  left outer join WorkStatus on (Works.StatusId = WorkStatus.StatusID)
+ inner join WorkCompleteCTE work_complete_cte on (work_complete_cte.work_cte_id = Works.Id_Work)
 where
  WORKS.IS_DEL <> 1
- order by id_work desc -- works.MaterialNumber desc
+ order by id_work desc -- works.MaterialNumber desc	
 return
 end
 
