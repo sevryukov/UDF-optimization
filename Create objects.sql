@@ -110,7 +110,7 @@ AS
 -- СПИСОК РАБОТ
 begin
 insert into @result
-WITH WorkCompleteCTE(work_cte_id, complit, not_complit) as 
+WITH WorkCompleteCTE(work_cte_id, complit, not_complit) as
 (
 	SELECT
 		workitem_cte.id_work as work_cte_id,
@@ -142,14 +142,14 @@ SELECT
       (Works.SendToFax is not null)
       then 1
       else 0
-  end as Is_Print  
+  end as Is_Print
 FROM
  Works
  left outer join WorkStatus on (Works.StatusId = WorkStatus.StatusID)
  inner join WorkCompleteCTE work_complete_cte on (work_complete_cte.work_cte_id = Works.Id_Work)
 where
  WORKS.IS_DEL <> 1
- order by id_work desc -- works.MaterialNumber desc	
+ order by id_work desc -- works.MaterialNumber desc
 return
 end
 
