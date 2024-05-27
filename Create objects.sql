@@ -5,22 +5,19 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE FUNCTION [dbo].[F_EMPLOYEE_FULLNAME] (
-       @ID_EMPLOYEE INT
-)
-RETURNS VARCHAR(101)
-AS
-BEGIN
-  DECLARE @RESULT VARCHAR(101)
-  SET @ID_EMPLOYEE = COALESCE(@ID_EMPLOYEE, dbo.F_EMPLOYEE_GET())
-
-  IF @ID_EMPLOYEE = -1
-     SET @RESULT = ''
-  ELSE
-    SELECT @RESULT = SURNAME + ' ' + UPPER(SUBSTRING(NAME, 1, 1)) + '. ' +
-    UPPER(SUBSTRING(PATRONYMIC, 1, 1)) + '.' FROM Employee
-    WHERE ID_EMPLOYEE = @ID_EMPLOYEE
-  SET @RESULT = RTRIM (REPLACE(@RESULT, '. .', ''))
+CREATE FUNCTION [dbo].[F_EMPLOYEE_FULLNAME] ( 
+       @ID_EMPLOYEE INT 
+) 
+RETURNS VARCHAR(101) 
+AS 
+BEGIN 
+  DECLARE @RESULT VARCHAR(101) 
+  IF @ID_EMPLOYEE IS NULL 
+     SET @ID_EMPLOYEE = dbo.F_EMPLOYEE_GET()
+  SELECT @RESULT = COALESCE(SURNAME + ' ' + UPPER(SUBSTRING(NAME, 1, 1)) + '. ' + UPPER(SUBSTRING(PATRONYMIC, 1, 1) + '.', LOGIN_NAME), '') 
+  FROM Employee 
+  WHERE ID_EMPLOYEE = @ID_EMPLOYEE
+  SET @RESULT = RTRIM(REPLACE(@RESULT, '. .', '')) 
   
   IF @RESULT = ''
 	SELECT @RESULT = LOGIN_NAME FROM Employee Where Id_Employee = @ID_Employee
@@ -70,7 +67,7 @@ AS
 BEGIN
 -- количество готовых / не готовых анализов для заказа
      declare @result int
-     select @result = count(*) from workitem
+     select @result = count(ID_WORKItem) from workitem
      where id_work = @id_work
      -- не является групповым
      and id_analiz 
