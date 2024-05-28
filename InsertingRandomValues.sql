@@ -1,4 +1,4 @@
--- Создание таблицы PrintTemplate (если она еще не создана)
+-- РЎРѕР·РґР°РЅРёРµ С‚Р°Р±Р»РёС†С‹ PrintTemplate (РµСЃР»Рё РѕРЅР° РµС‰Рµ РЅРµ СЃРѕР·РґР°РЅР°)
 IF OBJECT_ID('dbo.PrintTemplate', 'U') IS NULL
 BEGIN
   CREATE TABLE [dbo].[PrintTemplate] (
@@ -6,7 +6,7 @@ BEGIN
     [TemplateName] VARCHAR(50)
   );
 
-  -- Вставка тестовых данных в PrintTemplate
+  -- Р’СЃС‚Р°РІРєР° С‚РµСЃС‚РѕРІС‹С… РґР°РЅРЅС‹С… РІ PrintTemplate
   DECLARE @PrintTemplate_cnt INT = 0;
   DECLARE @tempString VARCHAR(255);
   
@@ -19,13 +19,13 @@ BEGIN
   END;
 END;
 
--- Получение существующих значений для внешних ключей
+-- РџРѕР»СѓС‡РµРЅРёРµ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… Р·РЅР°С‡РµРЅРёР№ РґР»СЏ РІРЅРµС€РЅРёС… РєР»СЋС‡РµР№
 DECLARE @existingPrintTemplateIds TABLE (Id INT);
 DECLARE @existingAnalizIds TABLE (Id INT);
 DECLARE @existingSelectTypeIds TABLE (Id INT);
 DECLARE @existingOrganizationIds TABLE (Id INT);
 
--- Заполнение таблиц существующими значениями
+-- Р—Р°РїРѕР»РЅРµРЅРёРµ С‚Р°Р±Р»РёС† СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёРјРё Р·РЅР°С‡РµРЅРёСЏРјРё
 INSERT INTO @existingPrintTemplateIds (Id)
 SELECT Id_PrintTemplate FROM dbo.PrintTemplate;
 
@@ -38,7 +38,7 @@ SELECT Id_SelectType FROM dbo.SelectType;
 INSERT INTO @existingOrganizationIds (Id)
 SELECT ID_ORGANIZATION FROM dbo.Organization;
 
--- Вставка данных в таблицу Analiz
+-- Р’СЃС‚Р°РІРєР° РґР°РЅРЅС‹С… РІ С‚Р°Р±Р»РёС†Сѓ Analiz
 DECLARE @analize_cnt INT = 0;
 DECLARE @tempBit BIT;
 DECLARE @tempInt INT;
@@ -74,7 +74,7 @@ BEGIN
   SET @analize_cnt = @analize_cnt + 1
 END;
 
--- Вставка данных в таблицу Employee
+-- Р’СЃС‚Р°РІРєР° РґР°РЅРЅС‹С… РІ С‚Р°Р±Р»РёС†Сѓ Employee
 DECLARE @Employee_cnt INT = 0;
 DECLARE @tempEmail VARCHAR(255);
 DECLARE @tempDate DATETIME;
@@ -116,7 +116,7 @@ BEGIN
   SET @Employee_cnt = @Employee_cnt + 1
 END;
 
--- Вставка данных в таблицу Organization
+-- Р’СЃС‚Р°РІРєР° РґР°РЅРЅС‹С… РІ С‚Р°Р±Р»РёС†Сѓ Organization
 DECLARE @Organization_cnt INT = 0;
 
 WHILE @Organization_cnt < 500
@@ -124,7 +124,7 @@ BEGIN
   EXEC dbo.RandomString 50, @tempString OUTPUT
   EXEC dbo.RandomEmail 'example.com', @tempEmail OUTPUT
 
-  -- Получение случайного Id_PrintTemplate из существующих значений
+  -- РџРѕР»СѓС‡РµРЅРёРµ СЃР»СѓС‡Р°Р№РЅРѕРіРѕ Id_PrintTemplate РёР· СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… Р·РЅР°С‡РµРЅРёР№
   SELECT TOP 1 @tempInt = Id_PrintTemplate FROM PrintTemplate ORDER BY NEWID();
 
   INSERT INTO [dbo].[Organization] (
@@ -148,7 +148,7 @@ BEGIN
   SET @Organization_cnt = @Organization_cnt + 1
 END;
 
--- Вставка данных в таблицу WorkStatus
+-- Р’СЃС‚Р°РІРєР° РґР°РЅРЅС‹С… РІ С‚Р°Р±Р»РёС†Сѓ WorkStatus
 DECLARE @Status_cnt SMALLINT = 1;
 WHILE @Status_cnt <= 10
 BEGIN
@@ -158,7 +158,7 @@ BEGIN
   SET @Status_cnt = @Status_cnt + 1;
 END;
 
--- Вставка данных в таблицу SelectType
+-- Р’СЃС‚Р°РІРєР° РґР°РЅРЅС‹С… РІ С‚Р°Р±Р»РёС†Сѓ SelectType
 DECLARE @SelectType_cnt INT = 1;
 WHILE @SelectType_cnt <= 10
 BEGIN
@@ -168,7 +168,7 @@ BEGIN
   SET @SelectType_cnt = @SelectType_cnt + 1;
 END;
 
--- Вставка данных в таблицу TemplateType
+-- Р’СЃС‚Р°РІРєР° РґР°РЅРЅС‹С… РІ С‚Р°Р±Р»РёС†Сѓ TemplateType
 DECLARE @TemplateType_cnt INT = 1;
 WHILE @TemplateType_cnt <= 10
 BEGIN
@@ -178,7 +178,7 @@ BEGIN
   SET @TemplateType_cnt = @TemplateType_cnt + 1;
 END;
 
--- Вставка данных в таблицу Works
+-- Р’СЃС‚Р°РІРєР° РґР°РЅРЅС‹С… РІ С‚Р°Р±Р»РёС†Сѓ Works
 DECLARE @Work_cnt INT = 1;
 
 WHILE @Work_cnt <= 1000
@@ -188,7 +188,7 @@ BEGIN
   EXEC dbo.RandomInt 1000, @tempInt OUTPUT
   EXEC dbo.RandomString 15, @tempString OUTPUT
 
-  -- Получение случайного ID_ORGANIZATION из существующих значений
+  -- РџРѕР»СѓС‡РµРЅРёРµ СЃР»СѓС‡Р°Р№РЅРѕРіРѕ ID_ORGANIZATION РёР· СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… Р·РЅР°С‡РµРЅРёР№
   DECLARE @tempOrgId INT;
   SELECT TOP 1 @tempOrgId = ID_ORGANIZATION FROM Organization ORDER BY NEWID();
 
@@ -269,7 +269,7 @@ BEGIN
   SET @Work_cnt = @Work_cnt + 1;
 END;
 
--- Вставка данных в таблицу WorkItem
+-- Р’СЃС‚Р°РІРєР° РґР°РЅРЅС‹С… РІ С‚Р°Р±Р»РёС†Сѓ WorkItem
 DECLARE @WorkItem_cnt INT = 1;
 DECLARE @tempAnalizId INT;
 DECLARE @tempSelectTypeId INT;
@@ -281,7 +281,7 @@ BEGIN
   EXEC dbo.RandomInt 1000, @tempInt OUTPUT
   EXEC dbo.RandomPrice @tempPrice OUTPUT
 
-  -- Получение случайных Id_Analiz и Id_SelectType из существующих значений
+  -- РџРѕР»СѓС‡РµРЅРёРµ СЃР»СѓС‡Р°Р№РЅС‹С… Id_Analiz Рё Id_SelectType РёР· СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… Р·РЅР°С‡РµРЅРёР№
   SELECT TOP 1 @tempAnalizId = Id FROM @existingAnalizIds ORDER BY NEWID();
   SELECT TOP 1 @tempSelectTypeId = Id FROM @existingSelectTypeIds ORDER BY NEWID();
 
