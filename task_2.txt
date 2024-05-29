@@ -1,0 +1,57 @@
+-- Описание изменений:
+-- Замена NOT IN (SELECT id_analiz FROM Analiz WHERE is_group = 1) на IN (SELECT id_analiz FROM Analiz WHERE is_group = 0) оставляет запрос логически эквивалентным и уменьшает количество строк для обработки, но нужно убедиться, что множество не будет пустым!
+-- Замена скалярных функций на LEFT JOIN и условную агрегацию:
+-- -- Вместо dbo.F_WORKITEMS_COUNT_BY_ID_WORK используется LEFT JOIN с таблицей WorkItem и SUM(CASE WHEN ...) для подсчета готовых/не готовых анализов в одном запросе.
+-- -- NOT IN заменен на LEFT JOIN с условием для id_analiz.
+-- Оптимизация dbo.F_EMPLOYEE_FULLNAME:
+-- -- Логика функции встроена в основной запрос с использованием COALESCE.
+-- Упрощение CASE для Is_Print:
+-- -- Используется OR вместо множественных условий IS NOT NULL.
+
+
+ALTER FUNCTION [dbo].[F_WORKS_LIST]()
+RETURNS @RESULT TABLE (
+  ID_WORK INT,
+  CREATE_Date DATETIME,
+  MaterialNumber DECIMAL(8,2),
+  IS_Complit BIT,
+  FIO VARCHAR(255),
+  D_DATE varchar(10),
+  WorkItemsNotComplit int,
+  WorkItemsComplit int,
+  FULL_NAME VARCHAR(101),
+  StatusId smallint,
+  StatusName VARCHAR(255),
+  Is_Print bit
+)
+AS
+BEGIN
+  INSERT INTO @result
+  SELECT
+    w.Id_Work,
+    w.CREATE_Date,
+    w.MaterialNumber,
+    w.IS_Complit,
+    w.FIO,
+    CONVERT(VARCHAR(10), w.CREATE_Date, 104) AS D_DATE,
+    SUM(CASE WHEN wi.is_complit = 0 THEN 1 ELSE 0 END) AS WorkItemsNotComplit,
+    SUM(CASE WHEN wi.is_complit = 1 THEN 1 ELSE 0 END) AS WorkItemsComplit,
+    COALESCE(e.SURNAME + ' ' + UPPER(SUBSTRING(e.NAME, 1, 1)) + '. ' + UPPER(SUBSTRING(e.PATRONYMIC, 1, 1)) + '.', e.LOGIN_NAME) AS EmployeeFullName,
+    w.StatusId,
+    ws.StatusName,
+    CASE 
+      WHEN w.Print_Date IS NOT NULL OR w.SendToClientDate IS NOT NULL OR w.SendToDoctorDate IS NOT NULL OR w.SendToOrgDate IS NOT NULL OR w.SendToFax IS NOT NULL 
+      THEN 1 
+      ELSE 0 
+    END AS Is_Print
+  FROM Works w
+  LEFT JOIN WorkStatus ws ON w.StatusId = ws.StatusID
+  LEFT JOIN Employee e ON w.Id_Employee = e.Id_Employee
+  LEFT JOIN WorkItem wi ON w.Id_Work = wi.Id_Work AND wi.id_analiz IN (SELECT id_analiz FROM Analiz WHERE is_group = 0)
+  WHERE w.IS_DEL <> 1
+  GROUP BY w.Id_Work, w.CREATE_Date, w.MaterialNumber, w.IS_Complit, w.FIO, e.SURNAME, e.NAME, e.PATRONYMIC, e.LOGIN_NAME, w.StatusId, ws.StatusName, 
+           w.Print_Date, w.SendToClientDate, w.SendToDoctorDate, w.SendToOrgDate, w.SendToFax
+  ORDER BY w.id_work DESC; 
+
+  RETURN;
+END;
