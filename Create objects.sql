@@ -5,27 +5,19 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE FUNCTION [dbo].[F_EMPLOYEE_FULLNAME] (
-       @ID_EMPLOYEE INT
-)
-RETURNS VARCHAR(101)
+CREATE OR ALTER FUNCTION dbo.F_EMPLOYEE_FULLNAME (@ID_EMPLOYEE INT)
+RETURNS TABLE
 AS
-BEGIN
-  DECLARE @RESULT VARCHAR(101)
-  SET @ID_EMPLOYEE = COALESCE(@ID_EMPLOYEE, dbo.F_EMPLOYEE_GET())
-
-  IF @ID_EMPLOYEE = -1
-     SET @RESULT = ''
-  ELSE
-    SELECT @RESULT = SURNAME + ' ' + UPPER(SUBSTRING(NAME, 1, 1)) + '. ' +
-    UPPER(SUBSTRING(PATRONYMIC, 1, 1)) + '.' FROM Employee
-    WHERE ID_EMPLOYEE = @ID_EMPLOYEE
-  SET @RESULT = RTRIM (REPLACE(@RESULT, '. .', ''))
-  
-  IF @RESULT = ''
-	SELECT @RESULT = LOGIN_NAME FROM Employee Where Id_Employee = @ID_Employee
-  RETURN @RESULT
-END
+RETURN
+(
+	SELECT
+		CASE
+			WHEN e.Id_Employee IS NULL THEN ''
+			ELSE RTRIM(e.Surname + ' ' + LEFT(e.Name, 1) + '. ' + LEFT(e.Patronymic, 1) + '.')
+		END AS FullName
+	FROM Employee e
+	WHERE e.Id_Employee = @ID_EMPLOYEE
+);
 GO
 /****** Object:  UserDefinedFunction [dbo].[F_EMPLOYEE_GET]    Script Date: 28.04.2024 19:21:25 ******/
 SET ANSI_NULLS ON
@@ -61,27 +53,22 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE FUNCTION [dbo].[F_WORKITEMS_COUNT_BY_ID_WORK] (
-@id_work int,
-@is_complit bit
+CREATE OR ALTER FUNCTION dbo.F_WORKITEMS_COUNT_BY_ID_WORK (
+	@id_work INT,
+	@is_complit BIT
 )
-RETURNS int
+RETURNS TABLE
 AS
-BEGIN
--- количество готовых / не готовых анализов для заказа
-     declare @result int
-     select @result = count(*) from workitem
-     where id_work = @id_work
-     -- не является групповым
-     and id_analiz 
-	 not in 
-		 (select id_analiz 
-		 from analiz where is_group = 1)
-     
-	 and is_complit = @is_complit
-
-     Return @result
-END
+RETURN
+(
+	SELECT COUNT(*) AS Count
+	FROM WorkItem wi
+	WHERE wi.id_work = @id_work
+	  AND wi.is_complit = @is_complit
+	  AND NOT EXISTS (
+		  SELECT 1 FROM Analiz a WHERE a.id_analiz = wi.id_analiz AND a.is_group = 1
+	  )
+);
 GO
 /****** Object:  UserDefinedFunction [dbo].[F_WORKS_LIST]    Script Date: 28.04.2024 19:21:25 ******/
 SET ANSI_NULLS ON
@@ -89,57 +76,55 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE FUNCTION [dbo].[F_WORKS_LIST] (
-)
+CREATE OR ALTER FUNCTION dbo.F_WORKS_LIST()
 RETURNS @RESULT TABLE
 (
-ID_WORK INT,
-CREATE_Date DATETIME,
-MaterialNumber DECIMAL(8,2),
-IS_Complit BIT,
-FIO VARCHAR(255),
-D_DATE varchar(10),
-WorkItemsNotComplit int,
-WorkItemsComplit int,
-FULL_NAME VARCHAR(101),
-StatusId smallint,
-StatusName VARCHAR(255),
-Is_Print bit
+	ID_WORK INT,
+	CREATE_Date DATETIME,
+	MaterialNumber DECIMAL(8,2),
+	IS_Complit BIT,
+	FIO VARCHAR(255),
+	D_DATE VARCHAR(10),
+	WorkItemsNotComplit INT,
+	WorkItemsComplit INT,
+	FULL_NAME VARCHAR(101),
+	StatusId SMALLINT,
+	StatusName VARCHAR(255),
+	Is_Print BIT
 )
 AS
--- СПИСОК РАБОТ
-begin
-insert into @result
-SELECT
-  Works.Id_Work,
-  Works.CREATE_Date,
-  Works.MaterialNumber,
-  Works.IS_Complit,
-  Works.FIO,
-  convert(varchar(10), works.CREATE_Date, 104 ) as D_DATE,
-  dbo.F_WORKITEMS_COUNT_BY_ID_WORK(works.Id_Work,0) as WorkItemsNotComplit,
-  dbo.F_WORKITEMS_COUNT_BY_ID_WORK(works.Id_Work,1) as WorkItemsComplit,
-  dbo.F_EMPLOYEE_FULLNAME(Works.Id_Employee) as EmployeeFullName,
-  Works.StatusId,
-  WorkStatus.StatusName,
-  case
-      when (Works.Print_Date is not null) or
-      (Works.SendToClientDate is not null) or
-      (works.SendToDoctorDate is not null) or
-      (Works.SendToOrgDate is not null) or
-      (Works.SendToFax is not null)
-      then 1
-      else 0
-  end as Is_Print  
-FROM
- Works
- left outer join WorkStatus on (Works.StatusId = WorkStatus.StatusID)
-where
- WORKS.IS_DEL <> 1
- order by id_work desc -- works.MaterialNumber desc
-return
-end
+BEGIN
+	INSERT INTO @RESULT
+	SELECT
+		w.Id_Work,
+		w.CREATE_Date,
+		w.MaterialNumber,
+		w.IS_Complit,
+		w.FIO,
+		CONVERT(VARCHAR(10), w.CREATE_Date, 104) AS D_DATE,
+		wi_not_complit.Count AS WorkItemsNotComplit,
+		wi_complit.Count AS WorkItemsComplit,
+		ef.FullName,
+		w.StatusId,
+		ws.StatusName,
+		CASE
+			WHEN w.Print_Date IS NOT NULL
+			  OR w.SendToClientDate IS NOT NULL
+			  OR w.SendToDoctorDate IS NOT NULL
+			  OR w.SendToOrgDate IS NOT NULL
+			  OR w.SendToFax IS NOT NULL THEN 1
+			ELSE 0
+		END AS Is_Print
+	FROM Works w
+	LEFT JOIN WorkStatus ws ON w.StatusId = ws.StatusID
+	OUTER APPLY dbo.F_WORKITEMS_COUNT_BY_ID_WORK(w.Id_Work, 0) wi_not_complit
+	OUTER APPLY dbo.F_WORKITEMS_COUNT_BY_ID_WORK(w.Id_Work, 1) wi_complit
+	OUTER APPLY dbo.F_EMPLOYEE_FULLNAME(w.Id_Employee) ef
+	WHERE w.IS_DEL <> 1
+	ORDER BY w.Id_Work DESC;
 
+	RETURN;
+END;
 GO
 /****** Object:  Table [dbo].[Analiz]    Script Date: 28.04.2024 19:21:25 ******/
 SET ANSI_NULLS ON
