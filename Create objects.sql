@@ -83,64 +83,7 @@ BEGIN
      Return @result
 END
 GO
-/****** Object:  UserDefinedFunction [dbo].[F_WORKS_LIST]    Script Date: 28.04.2024 19:21:25 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 
-CREATE FUNCTION [dbo].[F_WORKS_LIST] (
-)
-RETURNS @RESULT TABLE
-(
-ID_WORK INT,
-CREATE_Date DATETIME,
-MaterialNumber DECIMAL(8,2),
-IS_Complit BIT,
-FIO VARCHAR(255),
-D_DATE varchar(10),
-WorkItemsNotComplit int,
-WorkItemsComplit int,
-FULL_NAME VARCHAR(101),
-StatusId smallint,
-StatusName VARCHAR(255),
-Is_Print bit
-)
-AS
--- СПИСОК РАБОТ
-begin
-insert into @result
-SELECT
-  Works.Id_Work,
-  Works.CREATE_Date,
-  Works.MaterialNumber,
-  Works.IS_Complit,
-  Works.FIO,
-  convert(varchar(10), works.CREATE_Date, 104 ) as D_DATE,
-  dbo.F_WORKITEMS_COUNT_BY_ID_WORK(works.Id_Work,0) as WorkItemsNotComplit,
-  dbo.F_WORKITEMS_COUNT_BY_ID_WORK(works.Id_Work,1) as WorkItemsComplit,
-  dbo.F_EMPLOYEE_FULLNAME(Works.Id_Employee) as EmployeeFullName,
-  Works.StatusId,
-  WorkStatus.StatusName,
-  case
-      when (Works.Print_Date is not null) or
-      (Works.SendToClientDate is not null) or
-      (works.SendToDoctorDate is not null) or
-      (Works.SendToOrgDate is not null) or
-      (Works.SendToFax is not null)
-      then 1
-      else 0
-  end as Is_Print  
-FROM
- Works
- left outer join WorkStatus on (Works.StatusId = WorkStatus.StatusID)
-where
- WORKS.IS_DEL <> 1
- order by id_work desc -- works.MaterialNumber desc
-return
-end
-
-GO
 /****** Object:  Table [dbo].[Analiz]    Script Date: 28.04.2024 19:21:25 ******/
 SET ANSI_NULLS ON
 GO
@@ -345,6 +288,64 @@ CREATE TABLE [dbo].[WorkStatus](
 GO
 SET ANSI_PADDING ON
 GO
+/****** Object:  UserDefinedFunction [dbo].[F_WORKS_LIST]    Script Date: 28.04.2024 19:21:25 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE FUNCTION [dbo].[F_WORKS_LIST] (
+)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT
+        w.Id_Work,
+        w.CREATE_Date,
+        w.MaterialNumber,
+        w.IS_Complit,
+        w.FIO,
+        CONVERT(varchar(10), w.CREATE_Date, 104) AS D_DATE,
+        ISNULL(cnt.NotCompleted, 0)  AS WorkItemsNotComplit,
+        ISNULL(cnt.Completed,    0)  AS WorkItemsComplit,
+        COALESCE(
+          emp.Surname 
+          + ' ' + UPPER(LEFT(emp.Name,1)) + '.'
+          + ' ' + UPPER(LEFT(emp.Patronymic,1)) + '.',
+          w.FIO
+        ) AS EmployeeFullName,
+        w.StatusId,
+        ws.StatusName,
+        CASE 
+          WHEN w.Print_Date       IS NOT NULL 
+            OR w.SendToClientDate IS NOT NULL 
+            OR w.SendToDoctorDate IS NOT NULL 
+            OR w.SendToOrgDate    IS NOT NULL 
+            OR w.SendToFax        IS NOT NULL 
+          THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT)
+        END AS Is_Print
+    FROM dbo.Works AS w
+    LEFT JOIN dbo.WorkStatus AS ws 
+      ON w.StatusId = ws.StatusID
+    LEFT JOIN (
+        SELECT 
+          wi.Id_Work,
+          SUM(CASE WHEN wi.Is_Complit = 0 THEN 1 ELSE 0 END) AS NotCompleted,
+          SUM(CASE WHEN wi.Is_Complit = 1 THEN 1 ELSE 0 END) AS Completed
+        FROM dbo.WorkItem AS wi
+        INNER JOIN dbo.Analiz AS a
+          ON wi.ID_ANALIZ = a.ID_ANALIZ
+         AND a.IS_GROUP   = 0
+        GROUP BY wi.Id_Work
+    ) AS cnt
+      ON cnt.Id_Work = w.Id_Work
+    LEFT JOIN dbo.Employee AS emp
+      ON emp.Id_Employee = w.Id_Employee
+    WHERE w.Is_Del <> 1
+);
+GO
+
 /****** Object:  Index [XAKLoginName]    Script Date: 28.04.2024 19:21:25 ******/
 CREATE UNIQUE NONCLUSTERED INDEX [XAKLoginName] ON [dbo].[Employee]
 (
