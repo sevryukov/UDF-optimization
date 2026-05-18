@@ -169,20 +169,20 @@ select top 3000 * from dbo.F_WORKS_LIST()
  SQL Server Execution Times:
    CPU time = 0 ms,  elapsed time = 0 ms.
 SQL Server parse and compile time: 
-   CPU time = 1 ms, elapsed time = 2 ms.
+   CPU time = 0 ms, elapsed time = 0 ms.
            
 -----------
        3000
 
 (1 rows affected)
-Table '#AD59FB47'. Scan count 1, logical reads 266, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+Table '#B9BFD22C'. Scan count 1, logical reads 520, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
 
  SQL Server Execution Times:
-   CPU time = 4995 ms,  elapsed time = 5039 ms.
+   CPU time = 7300 ms,  elapsed time = 7264 ms.
 
  SQL Server Execution Times:
    CPU time = 0 ms,  elapsed time = 0 ms.
-Elapsed time (DMV): 5045 ms
+Elapsed time (DMV): 7268 ms
 
  SQL Server Execution Times:
    CPU time = 0 ms,  elapsed time = 0 ms.
@@ -192,7 +192,7 @@ SQL Server parse and compile time:
  SQL Server Execution Times:
    CPU time = 0 ms,  elapsed time = 0 ms.
 SQL Server parse and compile time: 
-   CPU time = 1 ms, elapsed time = 1 ms.
+   CPU time = 0 ms, elapsed time = 0 ms.
 Microsoft SQL Server 2005 XML Showplan                                                                                                                                                                                                                          
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 <ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.564" Build="16.0.4252.3"><BatchSequence><Batch><Statements><StmtSimple StatementText="SELECT * FROM dbo.F_WORKS_LIST() WHERE ID_WORK &lt;= 3000" StatementId="1" Stateme
@@ -203,9 +203,9 @@ SQL Server parse and compile time:
 ```
 
 Из результатов выполнения:
-- CPU time ~ 5 секунд
-- elapsed time ~ 5 секунд
-- logical reads: 266
+- CPU time ~ 7.3 секунд
+- elapsed time ~ 7.3 секунд
+- logical reads: 520
 - Итоговая выборка: 3000 строк
 
 Проблемы:
