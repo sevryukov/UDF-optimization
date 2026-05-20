@@ -89,56 +89,103 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE FUNCTION [dbo].[F_WORKS_LIST] (
-)
+CREATE FUNCTION [dbo].[F_WORKS_LIST] ()
 RETURNS @RESULT TABLE
 (
-ID_WORK INT,
-CREATE_Date DATETIME,
-MaterialNumber DECIMAL(8,2),
-IS_Complit BIT,
-FIO VARCHAR(255),
-D_DATE varchar(10),
-WorkItemsNotComplit int,
-WorkItemsComplit int,
-FULL_NAME VARCHAR(101),
-StatusId smallint,
-StatusName VARCHAR(255),
-Is_Print bit
+    ID_WORK INT,
+    CREATE_Date DATETIME,
+    MaterialNumber DECIMAL(8,2),
+    IS_Complit BIT,
+    FIO VARCHAR(255),
+    D_DATE VARCHAR(10),
+    WorkItemsNotComplit INT,
+    WorkItemsComplit INT,
+    FULL_NAME VARCHAR(101),
+    StatusId INT,
+    StatusName VARCHAR(255),
+    Is_Print BIT
 )
 AS
--- СПИСОК РАБОТ
-begin
-insert into @result
-SELECT
-  Works.Id_Work,
-  Works.CREATE_Date,
-  Works.MaterialNumber,
-  Works.IS_Complit,
-  Works.FIO,
-  convert(varchar(10), works.CREATE_Date, 104 ) as D_DATE,
-  dbo.F_WORKITEMS_COUNT_BY_ID_WORK(works.Id_Work,0) as WorkItemsNotComplit,
-  dbo.F_WORKITEMS_COUNT_BY_ID_WORK(works.Id_Work,1) as WorkItemsComplit,
-  dbo.F_EMPLOYEE_FULLNAME(Works.Id_Employee) as EmployeeFullName,
-  Works.StatusId,
-  WorkStatus.StatusName,
-  case
-      when (Works.Print_Date is not null) or
-      (Works.SendToClientDate is not null) or
-      (works.SendToDoctorDate is not null) or
-      (Works.SendToOrgDate is not null) or
-      (Works.SendToFax is not null)
-      then 1
-      else 0
-  end as Is_Print  
-FROM
- Works
- left outer join WorkStatus on (Works.StatusId = WorkStatus.StatusID)
-where
- WORKS.IS_DEL <> 1
- order by id_work desc -- works.MaterialNumber desc
-return
-end
+BEGIN
+    DECLARE @CurrentEmployee INT;
+
+    SELECT @CurrentEmployee = dbo.F_EMPLOYEE_GET();
+
+    INSERT INTO @RESULT
+    SELECT
+        w.Id_Work,
+        w.CREATE_Date,
+        w.MaterialNumber,
+        w.IS_Complit,
+        w.FIO,
+        CONVERT(varchar(10), w.CREATE_Date, 104) AS D_DATE,
+
+        ISNULL(ic.WorkItemsNotComplit, 0) AS WorkItemsNotComplit,
+        ISNULL(ic.WorkItemsComplit, 0) AS WorkItemsComplit,
+
+        CASE
+            WHEN COALESCE(w.Id_Employee, @CurrentEmployee) = -1 THEN ''
+            WHEN fn.RawFullName = '' THEN e.Login_Name
+            ELSE fn.RawFullName
+        END AS FULL_NAME,
+
+        w.StatusId,
+        ws.StatusName,
+
+        CAST(
+            CASE
+                WHEN w.Print_Date IS NOT NULL
+                  OR w.SendToClientDate IS NOT NULL
+                  OR w.SendToDoctorDate IS NOT NULL
+                  OR w.SendToOrgDate IS NOT NULL
+                  OR w.SendToFax IS NOT NULL
+                THEN 1
+                ELSE 0
+            END
+        AS bit) AS Is_Print
+
+    FROM dbo.Works w
+
+    LEFT JOIN dbo.WorkStatus ws
+        ON w.StatusId = ws.StatusID
+
+    LEFT JOIN dbo.Employee e
+        ON e.Id_Employee = COALESCE(w.Id_Employee, @CurrentEmployee)
+
+    OUTER APPLY (
+        SELECT
+            RawFullName = RTRIM(REPLACE(
+                e.Surname + ' '
+                + UPPER(SUBSTRING(e.Name, 1, 1)) + '. '
+                + UPPER(SUBSTRING(e.Patronymic, 1, 1)) + '.',
+                '. .',
+                ''
+            ))
+    ) fn
+
+    LEFT JOIN (
+        SELECT
+            wi.Id_Work,
+            SUM(CASE WHEN wi.Is_Complit = 0 THEN 1 ELSE 0 END) AS WorkItemsNotComplit,
+            SUM(CASE WHEN wi.Is_Complit = 1 THEN 1 ELSE 0 END) AS WorkItemsComplit
+        FROM dbo.WorkItem wi
+        WHERE wi.ID_ANALIZ IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1
+              FROM dbo.Analiz a
+              WHERE a.ID_ANALIZ = wi.ID_ANALIZ
+                AND a.IS_GROUP = 1
+          )
+        GROUP BY wi.Id_Work
+    ) ic
+        ON ic.Id_Work = w.Id_Work
+
+    WHERE w.Is_Del <> 1
+
+    ORDER BY w.Id_Work DESC;
+
+    RETURN;
+END;
 
 GO
 /****** Object:  Table [dbo].[Analiz]    Script Date: 28.04.2024 19:21:25 ******/
